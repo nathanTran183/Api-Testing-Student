@@ -18,22 +18,22 @@ const user = {
  */
 function login(req, res, next) {
   // Ideally you'll fetch this from the db
-
-  // Idea here was to show how jwt works with simplicity
-  if (req.body.username === user.username && req.body.password === user.password) {
-    const token = jwt.sign({
-      username: user.username
-    }, config.jwtSecret);
-    return res.json({
-      token,
-      username: user.username
-    });
-  }
-
-  const err = new APIError('Authentication error', httpStatus.UNAUTHORIZED, true);
-  return next(err);
+  Account.getByUsername(req.body.username)
+    .then((account) => {
+      if (account.validatePassword(req.body.password)) {
+        const token = jwt.sign({ user: account }, config.jwtSecret);
+        return res.json({
+          token: token,
+          user: account
+        });
+      } else {
+        const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
+        return next(err);
+      }
+    })
+    .catch(e => next(e));
 }
-
+ 
 function register(req, res, next) {
   Account.getByUsername(req.body.username)
     .then((account) => {
@@ -41,9 +41,15 @@ function register(req, res, next) {
       return next(err);
     }, (err) => {
       var newAccount = new Account(req.body);
-      newAccount.password = newAccount.generateHash(newAccount.password);
+      // newAccount.password = newAccount.generateHash(newAccount.password);
       newAccount.save()
-        .then(savedAccount => res.json(savedAccount))
+        .then(savedAccount => {
+          const token = jwt.sign({ user: newAccount }, config.jwtSecret);
+          return res.json({
+            token: token,
+            user: savedAccount
+          })
+        })
         .catch(e => next(e));
     })
     .catch(e => next(e));

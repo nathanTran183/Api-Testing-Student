@@ -44,10 +44,10 @@ const AccountSchema = new mongoose.Schema({
  * - virtuals
  */
 AccountSchema.pre('save', function (next) {
-  var me = this,
-    error;
+  var me = this;
   if (me.isModified('password')) {
     me.password = me.generateHash(me.password);
+    console.log(me.password);
   }
   next();
 });
@@ -59,10 +59,9 @@ AccountSchema.method({
   validatePassword(password) {
     return bcrypt.compareSync(password, this.password);
   },
-
-  generateHash(password) {
+  generateHash(password){
     return bcrypt.hashSync(password, bcrypt.genSaltSync(8), null);
-  }
+  },
 });
 
 /**
@@ -86,19 +85,14 @@ AccountSchema.statics = {
       });
   },
 
-  getByUsername(username, email) {
-    return this.findOne({
-      $or: [
-        { 'email': email },
-        { 'username': username }
-      ]
-    })
+  getByUsername(username) {
+    return this.findOne({ 'username': username })
       .exec()
       .then((account) => {
         if (account) {
           return account;
         }
-        const err = new APIError('No such user exists!', httpStatus.NOT_FOUND);
+        const err = new APIError('No such user exists with this username!', httpStatus.NOT_FOUND, true);
         return Promise.reject(err);
       });
   },
