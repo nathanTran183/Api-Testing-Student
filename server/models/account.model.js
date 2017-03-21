@@ -22,6 +22,11 @@ const AccountSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  role: {
+    type: Boolean,
+    required: true,
+    default: false,
+  },
   created_at: {
     type: Date,
     required: true,
@@ -44,7 +49,7 @@ const AccountSchema = new mongoose.Schema({
  * - virtuals
  */
 AccountSchema.pre('save', function (next) {
-  var me = this;
+  const me = this;
   if (me.isModified('password')) {
     me.password = me.generateHash(me.password);
     console.log(me.password);
@@ -59,7 +64,7 @@ AccountSchema.method({
   validatePassword(password) {
     return bcrypt.compareSync(password, this.password);
   },
-  generateHash(password){
+  generateHash(password) {
     return bcrypt.hashSync(password, bcrypt.genSaltSync(8), null);
   },
 });
@@ -86,7 +91,7 @@ AccountSchema.statics = {
   },
 
   getByUsername(username) {
-    return this.findOne({ 'username': username })
+    return this.findOne({ username })
       .exec()
       .then((account) => {
         if (account) {

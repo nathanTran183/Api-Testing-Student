@@ -3,11 +3,6 @@ import httpStatus from 'http-status';
 import APIError from '../helpers/APIError';
 import config from '../../config/env';
 import Account from '../models/account.model';
-// sample user, used for authentication
-const user = {
-  username: 'admin',
-  password: '123123'
-};
 
 /**
  * Returns jwt token if valid username and password is provided
@@ -21,40 +16,59 @@ function login(req, res, next) {
   Account.getByUsername(req.body.username)
     .then((account) => {
       if (account.validatePassword(req.body.password)) {
-        const token = jwt.sign({ user: account }, config.jwtSecret);
+        const token = jwt.sign({
+          userId: account._id,
+          role: account.role,
+          expiresIn: config.expireTime
+        }, config.jwtSecret);
         return res.json({
-          token: token,
+          token,
           user: account
         });
-      } else {
-        const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
-        return next(err);
       }
+      const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
+      return next(err);
     })
     .catch(e => next(e));
 }
- 
+
 function register(req, res, next) {
   Account.getByUsername(req.body.username)
-    .then((account) => {
+    .then(() => {
       const err = new APIError('Username is already existed!', httpStatus.CONFLICT, true);
       return next(err);
-    }, (err) => {
-      var newAccount = new Account(req.body);
-      // newAccount.password = newAccount.generateHash(newAccount.password);
+    }, () => {
+      const newAccount = new Account(req.body);
       newAccount.save()
-        .then(savedAccount => {
-          const token = jwt.sign({ user: newAccount }, config.jwtSecret);
+        .then((savedAccount) => {
+          const token = jwt.sign({
+            userId: savedAccount._id,
+            role: savedAccount.role,
+            expiresIn: config.expireTime
+          }, config.jwtSecret);
           return res.json({
-            token: token,
-            user: savedAccount
-          })
+            user: savedAccount,
+            token,
+          });
         })
         .catch(e => next(e));
     })
     .catch(e => next(e));
 }
 
+function getListAccount(req, res, next) {
+  if (req.user.role) {
+    const { limit = 50, skip = 0 } = req.query;
+    Account.list({ limit, skip })
+      .then(accounts => res.json({
+        listAccount: accounts
+      }))
+      .catch(err => next(err));
+  } else {
+    const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
+    return next(err);
+  }
+}
 /**
  * This is a protected route. Will return random number only if jwt token is provided in header.
  * @param req
@@ -62,12 +76,12 @@ function register(req, res, next) {
  * @returns {*}
  */
 function getRandomNumber(req, res) {
+  console.log('-----------------------------');
+  console.log(req.user);
   // req.user is assigned by jwt middleware if valid token is provided
   return res.json({
-    token: req.headers.authorization.split(' ')[1],
-    user: req.user,
     num: Math.random() * 100
   });
 }
 
-export default { login, getRandomNumber, register };
+export default { login, getRandomNumber, register, getListAccount };

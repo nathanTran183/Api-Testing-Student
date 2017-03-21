@@ -17,7 +17,11 @@ router.route('/register')
 
 /** POST /api/auth/addAccount - Returns userdata and token if valid information is provided and valid token */
 router.route('/addAccount')
-  .post(validate(paramValidation.register),expressJwt({ secret: config.jwtSecret }), authCtrl.register);
+  .post([validate(paramValidation.register), expressJwt({ secret: config.jwtSecret })], authCtrl.register);
+
+/** GET /api/auth/listAccount - Returns list of Account if valid token is provided */
+router.route('/listAccount')
+  .get(expressJwt({ secret: config.jwtSecret }), authCtrl.getListAccount);
 
 /** GET /api/auth/random-number - Protected route,
  * needs token returned by the above as header. Authorization: Bearer {token} */
