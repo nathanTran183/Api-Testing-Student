@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-export default {  
+export default {
 
   // POST /api/users
   createUser: {
@@ -34,7 +34,7 @@ export default {
     body: {
       username: Joi.string().required(),
       email: Joi.string().email(),
-      password: Joi.string().required()      
+      password: Joi.string().required(),
     }
   },
 };

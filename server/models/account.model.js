@@ -27,6 +27,11 @@ const AccountSchema = new mongoose.Schema({
     required: true,
     default: false,
   },
+  status: {
+    type: Boolean,
+    require: true,
+    default: true,
+  },
   created_at: {
     type: Date,
     required: true,

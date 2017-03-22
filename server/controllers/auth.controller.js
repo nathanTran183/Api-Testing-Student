@@ -15,23 +15,35 @@ function login(req, res, next) {
   // Ideally you'll fetch this from the db
   Account.getByUsername(req.body.username)
     .then((account) => {
-      if (account.validatePassword(req.body.password)) {
-        const token = jwt.sign({
-          userId: account._id,
-          role: account.role,
-          expiresIn: config.expireTime
-        }, config.jwtSecret);
-        return res.json({
-          token,
-          user: account
-        });
+      if (account.status) {
+        if (account.validatePassword(req.body.password)) {
+          const token = jwt.sign({
+            userId: account._id,
+            role: account.role,
+            expiresIn: config.expireTime
+          }, config.jwtSecret);
+          return res.json({
+            token,
+            user: account
+          });
+        } else {
+          const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
+          return next(err);
+        }
+      } else {
+        const err = new APIError('Your account is deactivated! Cannot login the system!', httpStatus.UNAUTHORIZED, true);
+        return next(err);
       }
-      const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
-      return next(err);
     })
     .catch(e => next(e));
 }
 
+/**
+ * This is a protected route. Will get specify account only if jwt token is provided in header.
+ * @param req
+ * @param res
+ * @returns {*}
+ */
 function register(req, res, next) {
   Account.getByUsername(req.body.username)
     .then(() => {
@@ -56,19 +68,70 @@ function register(req, res, next) {
     .catch(e => next(e));
 }
 
-function getListAccount(req, res, next) {
+/**
+ * This is a protected route. Will return list of accounts only if jwt token is provided in header
+ * and user's account logged in is admin.
+ * @param req
+ * @param res
+ * @returns {*}
+ */
+function getList(req, res) {
   if (req.user.role) {
     const { limit = 50, skip = 0 } = req.query;
     Account.list({ limit, skip })
       .then(accounts => res.json({
         listAccount: accounts
       }))
+      .catch(err => res.json(err));
+  } else {
+    const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
+    return res.json(err);
+  }
+}
+
+/**
+ * This is a protected route. Will get specify account only if jwt token is provided in header.
+ * @param req
+ * @param res
+ * @returns {*}
+ */
+function get(req, res, next) {
+  if (req.user.role) {
+    const id = req.param('accId');
+    Account.getById(id)
+      .then(account => res.json(account))
       .catch(err => next(err));
   } else {
     const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
     return next(err);
   }
 }
+
+/**
+ * This is a protected route. Will get specify account only if jwt token is provided in header.
+ * @param req
+ * @param res
+ * @returns {*}
+ */
+function update(req, res, next) {
+  const id = req.param('accId');
+  if (req.user.role) {
+    Account.getById(id)
+      .then((account) => {
+        const updatedAccount = account;
+        updatedAccount.status = req.body.status;
+        console.log(updatedAccount);
+        updatedAccount.save()
+          .then(returnedAcc => res.json(returnedAcc))
+          .catch(e => next(e));
+      })
+      .catch(err => next(err));
+  } else {
+    const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
+    return next(err);
+  }
+}
+
 /**
  * This is a protected route. Will return random number only if jwt token is provided in header.
  * @param req
@@ -84,4 +147,4 @@ function getRandomNumber(req, res) {
   });
 }
 
-export default { login, getRandomNumber, register, getListAccount };
+export default { login, getRandomNumber, register, getList, get, update };
