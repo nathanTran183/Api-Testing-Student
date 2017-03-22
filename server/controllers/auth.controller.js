@@ -20,6 +20,7 @@ function login(req, res, next) {
           const token = jwt.sign({
             userId: account._id,
             role: account.role,
+            status: account.status,
             expiresIn: config.expireTime
           }, config.jwtSecret);
           return res.json({
@@ -56,6 +57,7 @@ function register(req, res, next) {
           const token = jwt.sign({
             userId: savedAccount._id,
             role: savedAccount.role,
+            status: savedAccount.status,
             expiresIn: config.expireTime
           }, config.jwtSecret);
           return res.json({
@@ -69,6 +71,19 @@ function register(req, res, next) {
 }
 
 /**
+ * This is a protected route. Will get specify account only if jwt token is provided in header.
+ * @param req
+ * @param res
+ * @returns {*}
+ */
+function getProfile(req, res, next) {
+  let accountId = req.user.userId;
+  Account.getById(accountId)
+    .then(account => res.json(account))
+    .catch(err => res.json(err));
+}
+
+/**
  * This is a protected route. Will return list of accounts only if jwt token is provided in header
  * and user's account logged in is admin.
  * @param req
@@ -76,17 +91,12 @@ function register(req, res, next) {
  * @returns {*}
  */
 function getList(req, res) {
-  if (req.user.role) {
-    const { limit = 50, skip = 0 } = req.query;
-    Account.list({ limit, skip })
-      .then(accounts => res.json({
-        listAccount: accounts
-      }))
-      .catch(err => res.json(err));
-  } else {
-    const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
-    return res.json(err);
-  }
+  const {limit = 50, skip = 0} = req.query;
+  Account.list({limit, skip})
+    .then(accounts => res.json({
+      listAccount: accounts
+    }))
+    .catch(err => next(err));
 }
 
 /**
@@ -102,7 +112,7 @@ function get(req, res, next) {
       .then(account => res.json(account))
       .catch(err => next(err));
   } else {
-    const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
+    const err = new APIError('You don\'t have permission to access this page', httpStatus.UNAUTHORIZED, true);
     return next(err);
   }
 }
@@ -120,14 +130,14 @@ function update(req, res, next) {
       .then((account) => {
         const updatedAccount = account;
         updatedAccount.status = req.body.status;
-        console.log(updatedAccount);
+        updatedAccount.updated_at = new Date();
         updatedAccount.save()
           .then(returnedAcc => res.json(returnedAcc))
           .catch(e => next(e));
       })
       .catch(err => next(err));
   } else {
-    const err = new APIError('You don\'t have permission to access this page', httpStatus.NOT_ACCEPTABLE, true);
+    const err = new APIError('You don\'t have permission to access this page', httpStatus.UNAUTHORIZED, true);
     return next(err);
   }
 }
@@ -147,4 +157,4 @@ function getRandomNumber(req, res) {
   });
 }
 
-export default { login, getRandomNumber, register, getList, get, update };
+export default {login, getRandomNumber, register, getProfile, getList, get, update};
