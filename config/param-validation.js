@@ -25,7 +25,7 @@ export default {
   login: {
     body: {
       username: Joi.string().required(),
-      password: Joi.string().required()
+      password: Joi.string().min(6).required(),
     }
   },
 
@@ -34,7 +34,16 @@ export default {
     body: {
       username: Joi.string().required(),
       email: Joi.string().email(),
-      password: Joi.string().required(),
+      password: Joi.string().min(6).required(),
     }
   },
+
+  //PUT /api/auth/changePass
+  changePass: {
+    body: {
+      currentPass: Joi.string().min(6).required(),
+      newPass: Joi.string().min(6).required(),
+      retypePass: Joi.string().min(6).required(),
+    }
+  }
 };

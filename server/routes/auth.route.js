@@ -16,10 +16,13 @@ router.route('/login')
 router.route('/register')
   .post(validate(paramValidation.register), authCtrl.register);
 
-/** GET /api/auth/register - Returns userdata and token if valid information is provided */
+/** GET /api/auth/profile - Returns userdata and token if valid information is provided */
 router.route('/profile')
   .get([expressJwt({ secret: config.jwtSecret }), passport.isLoggedIn], authCtrl.getProfile);
 
+/** POST /api/auth/changePass - Returns userdata and token if valid password is provided */
+router.route('/changePass')
+  .put([expressJwt({ secret: config.jwtSecret }), validate(paramValidation.changePass), passport.isLoggedIn], authCtrl.changePass);
 
 router.route('/')
   /** GET /api/auth - Returns list of Account if valid token is provided and role is true*/

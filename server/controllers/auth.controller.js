@@ -9,30 +9,27 @@ import Account from '../models/account.model';
  * @param req
  * @param res
  * @param next
+ * @property {string} req.body.username - The username of user.
+ * @property {string} req.body.password - The password of user.
  * @returns {*}
  */
 function login(req, res, next) {
   // Ideally you'll fetch this from the db
   Account.getByUsername(req.body.username)
     .then((account) => {
-      if (account.status) {
-        if (account.validatePassword(req.body.password)) {
-          const token = jwt.sign({
-            userId: account._id,
-            role: account.role,
-            status: account.status,
-            expiresIn: config.expireTime
-          }, config.jwtSecret);
-          return res.json({
-            token,
-            user: account
-          });
-        } else {
-          const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
-          return next(err);
-        }
+      if (account.validatePassword(req.body.password)) {
+        const token = jwt.sign({
+          userId: account._id,
+          role: account.role,
+          status: account.status,
+          expiresIn: config.expireTime
+        }, config.jwtSecret);
+        return res.json({
+          token,
+          user: account
+        });
       } else {
-        const err = new APIError('Your account is deactivated! Cannot login the system!', httpStatus.UNAUTHORIZED, true);
+        const err = new APIError('Password is not correct!', httpStatus.UNAUTHORIZED, true);
         return next(err);
       }
     })
@@ -43,6 +40,7 @@ function login(req, res, next) {
  * This is a protected route. Will get specify account only if jwt token is provided in header.
  * @param req
  * @param res
+ * @property {Object} req.body - The user.
  * @returns {*}
  */
 function register(req, res, next) {
@@ -103,6 +101,7 @@ function getList(req, res) {
  * This is a protected route. Will get specify account only if jwt token is provided in header.
  * @param req
  * @param res
+ * @param {string} req.params.accId - The id of user.
  * @returns {*}
  */
 function get(req, res, next) {
@@ -121,25 +120,60 @@ function get(req, res, next) {
  * This is a protected route. Will get specify account only if jwt token is provided in header.
  * @param req
  * @param res
+ * @param {string} req.params.accId - The id of user.
  * @returns {*}
  */
 function update(req, res, next) {
   const id = req.param('accId');
-  if (req.user.role) {
-    Account.getById(id)
-      .then((account) => {
-        const updatedAccount = account;
-        updatedAccount.status = req.body.status;
-        updatedAccount.updated_at = new Date();
-        updatedAccount.save()
-          .then(returnedAcc => res.json(returnedAcc))
-          .catch(e => next(e));
-      })
-      .catch(err => next(err));
-  } else {
-    const err = new APIError('You don\'t have permission to access this page', httpStatus.UNAUTHORIZED, true);
-    return next(err);
-  }
+  Account.getById(id)
+    .then((account) => {
+      const updatedAccount = account;
+      updatedAccount.status = req.body.status;
+      updatedAccount.updated_at = new Date();
+      updatedAccount.save()
+        .then(returnedAcc => res.json(returnedAcc))
+        .catch(e => next(e));
+    })
+    .catch(err => next(err));
+
+}
+
+/**
+ * This is a protected route. Will change password of account only if jwt token is provided in header.
+ * @param req
+ * @param res
+ * @property {string} req.body.currentPass - The current password of user.
+ * @property {string} req.body.newPass - The new password for user.
+ * @property {string} req.body.retypePass - The retype password which need to be match with new password
+ * @returns {*}
+ */
+function changePass(req, res, next) {
+  let currentPass = req.body.currentPass;
+  let newPass = req.body.newPass;
+  let retypePass = req.body.retypePass;
+  Account.getById(req.user.userId)
+    .then((account) => {
+      if (account.validatePassword(currentPass)) {
+        if (newPass === retypePass) {
+          account.password = newPass;
+          account.save()
+            .then((savedAccount) => {
+              return res.json({
+                user: savedAccount
+              });
+            })
+            .catch(e => next(e));
+        }
+        else {
+          const err = new APIError('Retype password does not match with new Password!', httpStatus.UNAUTHORIZED, true);
+          return next(err);
+        }
+      } else {
+        const err = new APIError('Your current password is not correct!', httpStatus.UNAUTHORIZED, true);
+        return next(err);
+      }
+    })
+    .catch(err => next(err));
 }
 
 /**
@@ -157,4 +191,4 @@ function getRandomNumber(req, res) {
   });
 }
 
-export default {login, getRandomNumber, register, getProfile, getList, get, update};
+export default {login, getRandomNumber, register, getProfile, getList, get, update, changePass};
