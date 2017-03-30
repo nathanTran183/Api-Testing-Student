@@ -65,7 +65,12 @@ ClassSchema.statics = {
    */
   list({ skip = 0, limit = 50 } = {}) {
     return this.find()
-      .populate('teacher_id')
+      .populate({
+        path: 'teacher_id',
+        populate: ({
+          path: 'account_id'
+        }),
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

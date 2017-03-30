@@ -1,5 +1,5 @@
 import AccountInfo from '../models/accountInfo.model';
-
+import moment from 'moment';
 /**
  * Create new class
  * @property {string} req.body.class_name - The name of class.
@@ -18,11 +18,9 @@ function create(req, res, next) {
   });
   info.date_of_birth = new Date(req.body.date_of_birth);
 
-  console.log(info);
-  return res.json(info);
-  /*info.save()
+  info.save()
     .then(savedClass => res.json(savedClass))
-    .catch(e => next(e));*/
+    .catch(e => next(e));
 }
 
 /**

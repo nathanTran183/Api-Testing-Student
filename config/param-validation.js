@@ -77,7 +77,7 @@ export default {
     body: {
       first_name: Joi.string().required(),
       last_name: Joi.string().required(),
-      date_of_birth: req.date().required(),
+      date_of_birth: Joi.string().required(),
       address: Joi.string().min(10).required(),
       gender: Joi.boolean().required(),
       degree: Joi.string().required(),

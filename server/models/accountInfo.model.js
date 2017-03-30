@@ -31,7 +31,7 @@ const AccountInfoSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  user_id:{
+  account_id:{
     type: mongoose.Schema.ObjectId,
     ref: 'Account',
     required: true,
@@ -81,7 +81,7 @@ AccountInfoSchema.statics = {
    */
   list({ skip = 0, limit = 50 } = {}) {
     return this.find()
-      .populate('user_id')
+      .populate('account_id')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
